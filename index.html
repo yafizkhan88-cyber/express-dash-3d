@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    
+    <!-- SEO & Google Search Meta Tags -->
+    <title>Express Dash 3D - Made by Yafiz</title>
+    <meta name="description" content="Play Express Dash 3D, an exciting 3D endless runner game like Subway Surfers, created by Yafiz. Play directly in your browser for free!">
+    <meta name="keywords" content="Express Dash 3D, Subway Surfers clone, Yafiz game, free 3D runner game, play online browser game">
+    <meta name="author" content="Yafiz">
+
+    <!-- Social Media Preview Tags (WhatsApp, Facebook) -->
+    <meta property="og:title" content="Express Dash 3D - Made by Yafiz">
+    <meta property="og:description" content="Play this amazing 3D runner game created by Yafiz right now!">
+    <meta property="og:type" content="website">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js for 3D Graphics -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Google Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            overflow: hidden;
+            background-color: #0d1117;
+            touch-action: none;
+        }
+        .font-game {
+            font-family: 'Fredoka One', cursive;
+        }
+        .btn-shadow {
+            box-shadow: 0 6px 0 #005bb5, 0 10px 20px rgba(0, 0, 0, 0.4);
+            transition: all 0.1s ease;
+        }
+        .btn-shadow:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 #005bb5, 0 4px 10px rgba(0, 0, 0, 0.4);
+        }
+        .gradient-title {
+            background: linear-gradient(180deg, #FFF066 0%, #FF9900 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0px 4px 8px rgba(0, 0, 0, 0.5));
+        }
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+    </style>
+</head>
+<body class="relative w-full h-screen overflow-hidden select-none">
+
+    <!-- 3D Canvas -->
+    <div id="canvas-container" class="absolute inset-0 w-full h-full"></div>
+
+    <!-- UI Overlay: HUD (Score & Coins) -->
+    <div id="hud" class="hidden absolute top-0 left-0 w-full p-4 md:p-6 pointer-events-none flex justify-between items-start z-10">
+        <div class="bg-black/40 backdrop-blur-md border border-white/10 rounded-2xl p-3 px-5 text-white shadow-lg flex flex-col">
+            <span class="text-xs uppercase tracking-wider text-yellow-400 font-bold">Score</span>
+            <span id="score-text" class="font-game text-3xl md:text-4xl text-white tracking-wide">0</span>
+        </div>
+
+        <div class="bg-black/40 backdrop-blur-md border border-white/10 rounded-2xl p-3 px-5 text-white shadow-lg flex items-center gap-3">
+            <div class="w-8 h-8 rounded-full bg-amber-400 border-2 border-yellow-200 flex items-center justify-center font-bold text-amber-900 text-lg shadow-inner">
+                $
+            </div>
+            <div class="flex flex-col">
+                <span class="text-xs uppercase tracking-wider text-yellow-400 font-bold">Coins</span>
+                <span id="coins-text" class="font-game text-2xl md:text-3xl text-yellow-300">0</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- START / SPLASH SCREEN -->
+    <div id="start-screen" class="absolute inset-0 z-20 flex flex-col items-center justify-between p-6 bg-gradient-to-b from-sky-500/80 via-indigo-900/90 to-slate-950 backdrop-blur-md overflow-y-auto">
+        <div class="flex flex-col items-center mt-6 text-center">
+            <div class="inline-block px-4 py-1.5 mb-2 rounded-full bg-gradient-to-r from-amber-400 to-orange-500 text-slate-950 font-bold text-xs uppercase shadow-lg">
+                3D Endless Runner
+            </div>
+            <h1 class="font-game text-4xl md:text-6xl gradient-title tracking-wider uppercase mb-1">
+                EXPRESS DASH 3D
+            </h1>
+            <div class="mt-1 px-5 py-1.5 bg-yellow-400/20 border-2 border-yellow-400/60 rounded-full backdrop-blur-md shadow-lg">
+                <p class="text-base md:text-lg font-extrabold text-yellow-300 tracking-wide">
+                    ✨ MADE BY YAFIZ ✨
+                </p>
+            </div>
+        </div>
+
+        <div class="w-full max-w-md my-4">
+            <h3 class="font-game text-center text-sm text-yellow-300 mb-2 uppercase tracking-wide">Choose Your Character</h3>
+            <div id="character-select-grid" class="grid grid-cols-3 gap-2.5 px-2"></div>
+        </div>
+
+        <div class="w-full max-w-xs flex flex-col items-center mb-4">
+            <button id="start-btn" class="w-full py-3.5 bg-gradient-to-r from-cyan-400 to-blue-600 rounded-2xl font-game text-xl md:text-2xl text-white tracking-wider uppercase btn-shadow hover:brightness-110 active:scale-95 transition">
+                PLAY GAME
+            </button>
+            <p class="text-[11px] text-slate-400 mt-2 text-center font-medium">
+                Designed & Developed by <span class="text-yellow-400 font-bold">Yafiz</span>
+            </p>
+        </div>
+    </div>
+
+    <!-- GAME OVER SCREEN -->
+    <div id="game-over-screen" class="hidden absolute inset-0 z-30 flex flex-col items-center justify-center p-6 bg-slate-950/90 backdrop-blur-lg">
+        <div class="w-full max-w-md bg-slate-900 border-2 border-red-500/40 rounded-3xl p-6 md:p-8 text-center shadow-2xl flex flex-col items-center relative overflow-hidden">
+            <div class="absolute -top-24 -left-24 w-48 h-48 bg-red-500/20 rounded-full blur-3xl pointer-events-none"></div>
+
+            <h2 class="font-game text-4xl md:text-5xl text-red-500 tracking-wider mb-2">CRASHED!</h2>
+            <p class="text-slate-400 text-sm mb-6 font-semibold">Game Over</p>
+
+            <div class="grid grid-cols-2 gap-4 w-full mb-6">
+                <div class="bg-slate-800/80 p-4 rounded-2xl border border-white/5 flex flex-col items-center">
+                    <span class="text-xs text-slate-400 uppercase font-bold">Score</span>
+                    <span id="final-score" class="font-game text-3xl text-white mt-1">0</span>
+                </div>
+                <div class="bg-slate-800/80 p-4 rounded-2xl border border-white/5 flex flex-col items-center">
+                    <span class="text-xs text-amber-400 uppercase font-bold">High Score</span>
+                    <span id="high-score" class="font-game text-3xl text-yellow-400 mt-1">0</span>
+                </div>
+            </div>
+
+            <div class="bg-amber-400/10 border border-amber-400/30 rounded-xl p-3 w-full mb-6 flex items-center justify-center gap-2">
+                <span class="text-amber-400 font-bold">Coins Collected:</span>
+                <span id="final-coins" class="font-game text-xl text-yellow-300">0</span>
+            </div>
+
+            <button id="restart-btn" class="w-full py-4 bg-gradient-to-r from-emerald-400 to-green-600 rounded-2xl font-game text-2xl text-white tracking-wider uppercase btn-shadow hover:brightness-110 active:scale-95 transition mb-4">
+                PLAY AGAIN
+            </button>
+
+            <div class="text-xs text-slate-400 border-t border-slate-800 pt-3 w-full">
+                Game created by <span class="text-yellow-400 font-bold">Yafiz</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sound & Game Logic Script -->
+    <script>
+        class SoundFX {
+            constructor() { this.ctx = null; }
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+            }
+            playCoin() {
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(800, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(1600, this.ctx.currentTime + 0.1);
+                gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.1);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.1);
+            }
+            playJump() {
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(150, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(400, this.ctx.currentTime + 0.15);
+                gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.15);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.15);
+            }
+            playCrash() {
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(120, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(30, this.ctx.currentTime + 0.3);
+                gain.gain.setValueAtTime(0.5, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.3);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.3);
+            }
+        }
+        const sfx = new SoundFX();
+
+        const characters = [
+            { id: 0, name: "Yafiz Runner", color: 0xff3366, capColor: 0x00ccff, price: 0, unlocked: true },
+            { id: 1, name: "Cyber Ninja", color: 0x33ff66, capColor: 0x111111, price: 0, unlocked: true },
+            { id: 2, name: "Golden Star", color: 0xffcc00, capColor: 0xff3300, price: 0, unlocked: true },
+            { id: 3, name: "Neon Racer", color: 0x00ffff, capColor: 0xff00ff, price: 50, unlocked: false },
+            { id: 4, name: "Magma Blaze", color: 0xff4500, capColor: 0x222222, price: 100, unlocked: false },
+            { id: 5, name: "Shadow Boss", color: 0x8a2be2, capColor: 0xffd700, price: 200, unlocked: false }
+        ];
+
+        let selectedCharacterId = 0;
+        let totalCoins = parseInt(localStorage.getItem('yafiz_total_coins') || '0');
+        let unlockedChars = JSON.parse(localStorage.getItem('yafiz_unlocked_chars') || '[0,1,2]');
+
+        characters.forEach(c => {
+            if (unlockedChars.includes(c.id)) c.unlocked = true;
+        });
+
+        const LANES = [-2.5, 0, 2.5];
+        let scene, camera, renderer;
+        let playerGroup, playerBody;
+        let gameRunning = false;
+        let currentLane = 1;
+        let targetX = 0;
+        
+        let playerY = 0;
+        let isJumping = false;
+        let isSliding = false;
+        let jumpVelocity = 0;
+        const gravity = -35;
+        const jumpPower = 12;
+
+        let tracks = [];
+        let obstacles = [];
+        let coins = [];
+
+        let speed = 25;
+        const baseSpeed = 25;
+        const maxSpeed = 55;
+        let distance = 0;
+        let score = 0;
+        let coinCount = 0;
+        let highScore = localStorage.getItem('yafiz_express_highscore') || 0;
+
+        let touchStartX = 0;
+        let touchStartY = 0;
+
+        const startScreen = document.getElementById('start-screen');
+        const gameOverScreen = document.getElementById('game-over-screen');
+        const hud = document.getElementById('hud');
+        const scoreText = document.getElementById('score-text');
+        const coinsText = document.getElementById('coins-text');
+        const finalScoreText = document.getElementById('final-score');
+        const highScoreText = document.getElementById('high-score');
+        const finalCoinsText = document.getElementById('final-coins');
+
+        function renderCharacterSelector() {
+            const grid = document.getElementById('character-select-grid');
+            grid.innerHTML = '';
+            characters.forEach(char => {
+                const isSelected = char.id === selectedCharacterId;
+                const card = document.createElement('div');
+                card.className = `p-2.5 rounded-2xl border-2 flex flex-col items-center justify-between cursor-pointer transition ${
+                    isSelected ? 'border-yellow-400 bg-yellow-400/20 scale-105' : 'border-white/10 bg-slate-800/60 hover:bg-slate-800'
+                }`;
+                
+                card.innerHTML = `
+                    <div class="w-10 h-10 rounded-full mb-1 flex items-center justify-center font-bold text-white shadow-md" style="background-color: #${char.color.toString(16)}">
+                        🏃
+                    </div>
+                    <span class="text-xs font-bold text-white text-center truncate w-full">${char.name}</span>
+                    <span class="text-[10px] mt-1 px-2 py-0.5 rounded-full font-bold ${
+                        char.unlocked ? (isSelected ? 'bg-yellow-400 text-slate-950' : 'bg-green-500/20 text-green-400') : 'bg-amber-500/20 text-amber-300'
+                    }">
+                        ${char.unlocked ? (isSelected ? 'ACTIVE' : 'SELECT') : '🪙 ' + char.price}
+                    </span>
+                `;
+
+                card.onclick = () => {
+                    if (char.unlocked) {
+                        selectedCharacterId = char.id;
+                        renderCharacterSelector();
+                    } else {
+                        if (totalCoins >= char.price) {
+                            totalCoins -= char.price;
+                            localStorage.setItem('yafiz_total_coins', totalCoins);
+                            char.unlocked = true;
+                            unlockedChars.push(char.id);
+                            localStorage.setItem('yafiz_unlocked_chars', JSON.stringify(unlockedChars));
+                            selectedCharacterId = char.id;
+                            renderCharacterSelector();
+                        } else {
+                            alert("Not enough coins to unlock this character!");
+                        }
+                    }
+                };
+                grid.appendChild(card);
+            });
+        }
+
+        function initThree() {
+            const container = document.getElementById('canvas-container');
+
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x3a88e9);
+            scene.fog = new THREE.FogExp2(0x3a88e9, 0.015);
+
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 200);
+            camera.position.set(0, 4.5, 8);
+            camera.rotation.x = -0.25;
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            container.appendChild(renderer.domElement);
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0xfffaed, 0.8);
+            dirLight.position.set(20, 40, 20);
+            dirLight.castShadow = true;
+            scene.add(dirLight);
+
+            createPlayer();
+
+            for (let i = 0; i < 10; i++) {
+                createTrackTile(-i * 30);
+            }
+
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        }
+
+        function createPlayer() {
+            if (playerGroup) scene.remove(playerGroup);
+            playerGroup = new THREE.Group();
+
+            const charData = characters.find(c => c.id === selectedCharacterId) || characters[0];
+
+            const bodyGeo = new THREE.BoxGeometry(0.8, 1.2, 0.5);
+            const playerMat = new THREE.MeshStandardMaterial({ color: charData.color, roughness: 0.3 });
+            playerBody = new THREE.Mesh(bodyGeo, playerMat);
+            playerBody.position.y = 0.9;
+            playerBody.castShadow = true;
+            playerGroup.add(playerBody);
+
+            const headGeo = new THREE.SphereGeometry(0.35, 16, 16);
+            const headMat = new THREE.MeshStandardMaterial({ color: 0xffcc99 });
+            const head = new THREE.Mesh(headGeo, headMat);
+            head.position.set(0, 0.85, 0);
+            playerBody.add(head);
+
+            const capGeo = new THREE.ConeGeometry(0.38, 0.25, 16);
+            const capMat = new THREE.MeshStandardMaterial({ color: charData.capColor });
+            const cap = new THREE.Mesh(capGeo, capMat);
+            cap.position.set(0, 0.25, -0.05);
+            cap.rotation.x = -0.2;
+            head.add(cap);
+
+            const brimGeo = new THREE.BoxGeometry(0.4, 0.04, 0.3);
+            const brim = new THREE.Mesh(brimGeo, capMat);
+            brim.position.set(0, -0.08, 0.25);
+            cap.add(brim);
+
+            const boardGeo = new THREE.BoxGeometry(0.9, 0.1, 2.0);
+            const boardMat = new THREE.MeshStandardMaterial({ color: 0xffcc00, roughness: 0.2 });
+            const board = new THREE.Mesh(boardGeo, boardMat);
+            board.position.set(0, -0.65, 0);
+            board.castShadow = true;
+            playerBody.add(board);
+
+            scene.add(playerGroup);
+        }
+
+        function createTrackTile(zPos) {
+            const tileGroup = new THREE.Group();
+            tileGroup.position.z = zPos;
+
+            const groundGeo = new THREE.BoxGeometry(10, 0.4, 30);
+            const groundMat = new THREE.MeshStandardMaterial({ color: 0x22252a, roughness: 0.8 });
+            const ground = new THREE.Mesh(groundGeo, groundMat);
+            ground.position.y = -0.2;
+            tileGroup.add(ground);
+
+            [-1.25, 1.25].forEach(x => {
+                const lineGeo = new THREE.BoxGeometry(0.15, 0.02, 30);
+                const lineMat = new THREE.MeshBasicMaterial({ color: 0xffb703 });
+                const line = new THREE.Mesh(lineGeo, lineMat);
+                line.position.set(x, 0.01, 0);
+                tileGroup.add(line);
+            });
+
+            [-4.8, 4.8].forEach(x => {
+                const curbGeo = new THREE.BoxGeometry(0.4, 0.6, 30);
+                const curbMat = new THREE.MeshStandardMaterial({ color: 0xcc3333 });
+                const curb = new THREE.Mesh(curbGeo, curbMat);
+                curb.position.set(x, 0.1, 0);
+                tileGroup.add(curb);
+            });
+
+            [-9, 9].forEach(x => {
+                const bldgHeight = 15 + Math.random() * 20;
+                const bldgGeo = new THREE.BoxGeometry(7, bldgHeight, 28);
+                const bldgMat = new THREE.MeshStandardMaterial({ color: 0x3a5a40, roughness: 0.7 });
+                const bldg = new THREE.Mesh(bldgGeo, bldgMat);
+                bldg.position.set(x, bldgHeight / 2 - 0.2, 0);
+                tileGroup.add(bldg);
+            });
+
+            scene.add(tileGroup);
+            tracks.push(tileGroup);
+
+            if (zPos < -30) {
+                spawnTileContent(zPos);
+            }
+        }
+
+        function spawnTile
